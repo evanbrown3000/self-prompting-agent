@@ -30,7 +30,9 @@ jobs:
         working-directory: /tmp
         run: |
           python -m pip install --disable-pip-version-check playwright==1.52.0
-      - name: Invoke independent A2A agent and capture browser traffic
+      - name: Preflight provider endpoints and pricing before any AI call
+        env:
+          PREFLIGHT_ONLY: "1"
         run: |
           mkdir -p artifacts
           python scripts/remote_agent_turn.py

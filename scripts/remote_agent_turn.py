@@ -1,8 +1,6 @@
 import asyncio
 import json
 import os
-import sys
-import time
 import uuid
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,10 +9,8 @@ from playwright.async_api import async_playwright
 
 PROMPT_PATH = Path("prompts/current.md")
 HAR_PATH = Path("artifacts/agent-provider.har")
-ENDPOINTS = [
-    "https://social.duoleads.com/a2a",
-    "https://localmark.ai/a2a",
-]
+AGENT_ORIGIN = "https://documents.localmark.ai"
+ENDPOINTS = [AGENT_ORIGIN + "/a2a"]
 COMPLETE = {"completed", "complete", "succeeded", "success", "done"}
 
 
@@ -45,6 +41,7 @@ def task_id_of(obj):
 
 def collect_text(obj):
     found = []
+
     def walk(value):
         if isinstance(value, str):
             return
@@ -54,15 +51,40 @@ def collect_text(obj):
             return
         if not isinstance(value, dict):
             return
-        for key in ("text", "output", "response", "content", "message", "result", "artifacts", "parts"):
+        for key in ("text", "output", "response", "content", "message", "result", "artifacts", "parts", "data"):
             value2 = value.get(key)
             if isinstance(value2, str):
                 found.append(value2)
             elif isinstance(value2, (dict, list)):
                 walk(value2)
+
     walk(obj)
-    # Preserve order while removing duplicate fragments.
     return "\n".join(dict.fromkeys(x.strip() for x in found if x.strip()))
+
+
+async def preflight_provider(context):
+    page = await context.new_page()
+    try:
+        try:
+            await page.goto(AGENT_ORIGIN, wait_until="domcontentloaded", timeout=20000)
+            print("BROWSER_OPENED=" + AGENT_ORIGIN)
+        except Exception as exc:
+            print(f"BROWSER_OPEN_ERROR={type(exc).__name__}: {exc}")
+        for path in (
+            "/.well-known/agent-card.json",
+            "/openapi.json",
+            "/api/pricing",
+            "/api/payment-terms",
+        ):
+            try:
+                response = await context.request.get(AGENT_ORIGIN + path, timeout=15000)
+                body = await response.text()
+                print(f"PREFLIGHT_GET {path} HTTP {response.status}")
+                print("PREFLIGHT_BODY=" + body[:10000])
+            except Exception as exc:
+                print(f"PREFLIGHT_ERROR {path}: {type(exc).__name__}: {exc}")
+    finally:
+        await page.close()
 
 
 async def rpc(request, endpoint, method, params, request_id):
@@ -82,78 +104,64 @@ async def rpc(request, endpoint, method, params, request_id):
 
 async def invoke_endpoint(context, endpoint, prompt):
     print(f"PROVIDER_ENDPOINT={endpoint}")
-    parsed_url = urlparse(endpoint)
-    origin = f"{parsed_url.scheme}://{parsed_url.netloc}"
-    page = await context.new_page()
-    try:
-        try:
-            await page.goto(origin, wait_until="domcontentloaded", timeout=20000)
-            print(f"BROWSER_OPENED={origin}")
-        except Exception as exc:
-            print(f"BROWSER_OPEN_ERROR={type(exc).__name__}: {exc}")
-
-        # Probe both common Agent Card locations before sending a turn.
-        for card_path in ("/.well-known/agent-card.json", "/.well-known/agent.json"):
-            try:
-                card = await context.request.get(origin + card_path, timeout=15000)
-                print(f"AGENT_CARD {card_path} HTTP {card.status}")
-                if card.ok:
-                    card_text = (await card.text())[:3000]
-                    print(f"AGENT_CARD_BODY={card_text}")
-                    break
-            except Exception as exc:
-                print(f"AGENT_CARD_ERROR {card_path}: {type(exc).__name__}")
-
-        message = {
-            "messageId": str(uuid.uuid4()),
-            "role": "user",
-            "parts": [{"text": prompt}],
-        }
-        attempts = [
-            ("message/send", {"message": message}),
-            ("tasks/send", {"id": str(uuid.uuid4()), "sessionId": str(uuid.uuid4()), "message": message}),
-        ]
-        last_error = None
-        for method, params in attempts:
-            try:
-                status, result = await rpc(context.request, endpoint, method, params, str(uuid.uuid4()))
-                print(f"A2A_SEND method={method} http={status} body={json.dumps(result, ensure_ascii=False)[:5000]}")
-                if status < 200 or status >= 300 or result.get("error"):
-                    last_error = f"{method} HTTP {status}: {result}"
-                    continue
-                payload = result.get("result", result)
-                state = state_of(payload)
-                output = collect_text(payload)
-                if state in COMPLETE and output:
-                    return {"provider": endpoint, "state": state, "output": output, "task_id": task_id_of(payload)}
-                task_id = task_id_of(payload)
-                if task_id:
-                    for attempt in range(45):
-                        await asyncio.sleep(2)
-                        poll_status, polled = await rpc(
-                            context.request, endpoint, "tasks/get", {"id": task_id}, str(uuid.uuid4())
-                        )
-                        print(f"A2A_POLL attempt={attempt+1} http={poll_status} body={json.dumps(polled, ensure_ascii=False)[:2500]}")
-                        if poll_status < 200 or poll_status >= 300 or polled.get("error"):
-                            continue
-                        polled_payload = polled.get("result", polled)
-                        polled_state = state_of(polled_payload)
-                        polled_output = collect_text(polled_payload)
-                        if polled_state in COMPLETE and polled_output:
-                            return {"provider": endpoint, "state": polled_state, "output": polled_output, "task_id": task_id}
-                        if polled_state in {"failed", "canceled", "cancelled", "rejected"}:
-                            last_error = f"task {task_id} ended in {polled_state}"
-                            break
-                elif output:
-                    # An immediate message response is a completed provider turn.
-                    return {"provider": endpoint, "state": "completed", "output": output, "task_id": None}
-            except Exception as exc:
-                last_error = f"{method}: {type(exc).__name__}: {exc}"
-                print(f"A2A_ATTEMPT_ERROR={last_error}")
-        print(f"A2A_ENDPOINT_FAILED={last_error or 'no completed response'}")
+    request_id = str(uuid.uuid4())
+    envelope = {
+        "request_id": request_id,
+        "allow_model_processing": True,
+        "input": {
+            "text": prompt,
+            "question": (
+                "Evaluate the architecture in the supplied text. Identify the strongest existing "
+                "implementation to extend, the best free-tier agent/browser route, the durable "
+                "cross-provider execution design, and one measurable next production action. "
+                "Distinguish evidence from recommendations."
+            ),
+        },
+    }
+    message = {
+        "messageId": str(uuid.uuid4()),
+        "role": "user",
+        "parts": [{"kind": "data", "data": envelope}],
+    }
+    status, result = await rpc(context.request, endpoint, "message/send", {"message": message}, str(uuid.uuid4()))
+    print(f"A2A_SEND method=message/send http={status} body={json.dumps(result, ensure_ascii=False)[:10000]}")
+    if status == 402:
+        print("NO_PAYMENT_AUTHORIZED; free trial unavailable or payment required; stopping without payment")
         return None
-    finally:
-        await page.close()
+    if status < 200 or status >= 300 or result.get("error"):
+        print("A2A_SEND_FAILED")
+        return None
+
+    payload = result.get("result", result)
+    state = state_of(payload)
+    output = collect_text(payload)
+    task_id = task_id_of(payload)
+    if state in COMPLETE and output:
+        return {"provider": endpoint, "state": state, "output": output, "task_id": task_id, "request_id": request_id}
+    if task_id:
+        for attempt in range(45):
+            await asyncio.sleep(2)
+            poll_status, polled = await rpc(
+                context.request, endpoint, "tasks/get", {"id": task_id}, str(uuid.uuid4())
+            )
+            print(f"A2A_POLL attempt={attempt+1} http={poll_status} body={json.dumps(polled, ensure_ascii=False)[:2500]}")
+            if poll_status == 402:
+                print("NO_PAYMENT_AUTHORIZED; stopping without payment")
+                return None
+            if poll_status < 200 or poll_status >= 300 or polled.get("error"):
+                continue
+            polled_payload = polled.get("result", polled)
+            polled_state = state_of(polled_payload)
+            polled_output = collect_text(polled_payload)
+            if polled_state in COMPLETE and polled_output:
+                return {"provider": endpoint, "state": polled_state, "output": polled_output, "task_id": task_id, "request_id": request_id}
+            if polled_state in {"failed", "canceled", "cancelled", "rejected"}:
+                print("A2A_TASK_TERMINAL_FAILURE=" + polled_state)
+                return None
+    elif output and len(output.strip()) >= 200:
+        return {"provider": endpoint, "state": "completed", "output": output, "task_id": None, "request_id": request_id}
+    print("A2A_NO_VERIFIED_TERMINAL_RESULT")
+    return None
 
 
 async def main():
@@ -168,11 +176,16 @@ async def main():
         browser = await playwright.chromium.launch(headless=True)
         context = await browser.new_context(record_har_path=str(HAR_PATH))
         try:
+            if os.getenv("PREFLIGHT_ONLY") == "1":
+                await preflight_provider(context)
+                print("PREFLIGHT_COMPLETE")
+                return
             for endpoint in ENDPOINTS:
                 result = await invoke_endpoint(context, endpoint, prompt)
                 if result:
                     print("AGENT_TURN_COMPLETE")
                     print("PROVIDER=" + result["provider"])
+                    print("REQUEST_ID=" + result["request_id"])
                     print("TASK_ID=" + str(result["task_id"]))
                     print("STATE=" + result["state"])
                     print("AGENT_RESPONSE_BEGIN")
