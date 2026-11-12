@@ -39,7 +39,7 @@ Public projects and provider documentation to compare:
 
 - Use public repository content and public provider documentation only. Do not request, infer, or expose private credentials or account data.
 - Do not invent repository facts, deployments, provider executions, account creation, or revenue.
-- Do not create accounts, send messages, perform outreach, or make payments.
+- Do not create accounts, send human outreach, submit applications, publish listings, or make payments. A direct agent-to-agent task submission is permitted only to an already-qualified native endpoint; it must be polled to terminal state with substantive output and must not require a new account or paid request.
 - Distinguish directly observed facts from recommendations.
 - Return a concise but technically specific architecture review, including source links and exact repository paths where possible.
 
@@ -59,3 +59,9 @@ Inspect these exact public OmniRoute paths and distinguish inbound skill invocat
 The central question is whether OmniRoute's A2A `message/send` executes one of its own skills through a model gateway, while `/api/a2a/tasks` delegates a real task to a separate coding-agent provider. Evaluate the task's original native identity, terminal-state observation, status synchronization, and whether an outbound A2A client exists. Do not equate a gateway completion or a submitted task with an independently completed native agent turn.
 
 Compare the existing public OmniRoute implementation with the A2A protocol specification, OpenHands Software Agent SDK, and Kilo Code's agent runtime. Recommend the smallest upgrade that preserves the strongest existing implementation and leaves durable scheduling, account custody, browser evidence, and source memory with their existing owners.
+
+## Additional review focus (2026-11-12)
+
+1. Assess the revenue lane as an execution system: an already-posted paid task, accepted work, substantive deliverable, buyer/platform acceptance, earned amount, payout initiation, and Coinbase credit are separate states. Recommend a provider-native evidence chain; do not invent revenue or treat a listing, application, or unpaid deliverable as earnings.
+2. If an already-qualified, zero-cost native agent endpoint on a different platform is publicly reachable, trigger one actual agent-to-agent task and wait for its original task ID to reach a terminal state with substantive output. Do not count an agent card, queued request, HTTP acknowledgement, or anonymous model completion. If no such endpoint is available, state that explicitly.
+3. Keep account custody, remote recurring execution, browser/HAR evidence, Pipeline admission, and native provider readback with their existing owners. Recommend one integrated path, not parallel schedulers or credential stores.
