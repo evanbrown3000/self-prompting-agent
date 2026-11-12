@@ -1,36 +1,36 @@
-You are an independent agent on a platform separate from ChatGPT. This is an active provider-native turn request, not an acknowledgement or a queued task.
+You are an independent document-analysis agent on LocalMark, separate from ChatGPT. Analyze only the supplied public architecture brief and return an actionable independent review.
 
-## Objective
+## Goal
 
-Assess how to strengthen an existing multi-provider agent organism without starting over. The intended system must preserve useful historical implementations while improving real cross-provider agent turns, remote browser execution, event-driven memory, graph retrieval, resource efficiency, and measurable production outcomes.
+Strengthen an existing multi-provider agent system without starting over: real cross-platform agent turns, remote browser execution, durable task orchestration, conversation memory, graph-based retrieval, and measurable production outcomes. Preserve the strongest historical implementation for each capability and avoid duplicate schedulers, credential vaults, or competing graph engines.
 
-## Existing implementation context
+## Existing architecture
 
-The owner's public GitHub repositories include:
-- `evanbrown3000/browser-automation`: ComputerUseX browser sessions, visual/CDP/DOM actions, recording, HAR capture, learned macros, and provider login/session acquisition.
-- `evanbrown3000/pipeline-framework-and-pipeline-harness`: shared durable agent-execution stages and task orchestration.
-- `evanbrown3000/networks-and-federation`: physical execution placement, remote nodes, provider routing, and resource/quota ownership.
-- `evanbrown3000/accounts-and-secrets`: account and credential custody.
-- `evanbrown3000/agent-memory` and `evanbrown3000/agent-memory-corpus`: conversation ingestion, rendering, summaries, and memory.
-- `evanbrown3000/self-prompting-agent`: this existing GitHub Actions A2A runner.
+The system already has separate components for:
+- Browser automation: Playwright, Chromium/CDP, DOM and visual actions, HAR recording, session handling, and learned browser macros.
+- Agent orchestration: durable task stages, handoffs, execution state, and provider selection.
+- Provider federation: remote execution placement, provider routing, and quota-aware resource selection.
+- Account custody: centralized account bindings and a single access path; credentials must remain encrypted and must not be copied into source control.
+- Memory: rendered conversation documents, layered summaries, and a graph-retrieval engine.
+- Remote agent prompting: a GitHub Actions runner that launches Playwright, sends native A2A messages, polls for terminal results, and preserves HAR artifacts.
 
-The current A2A runner launches Playwright Chromium, probes `https://social.duoleads.com/a2a` and `https://localmark.ai/a2a`, tries JSON-RPC `message/send` and `tasks/send`, polls `tasks/get` for terminal completion, and records a HAR. It is intended to produce a real external agent turn and read back the final response.
+Public open-source projects under consideration:
+- https://github.com/browser-use/browser-use
+- https://github.com/All-Hands-AI/OpenHands
+- https://github.com/vercel-labs/remote-agent-browser
 
-## Current observed constraints
+## Current execution findings
 
-- Creating another Vercel Sandbox in the existing team was rejected with HTTP 402 due to the team's fair-use limit. A local Vercel CLI fallback is not installed.
-- Existing Cognilode Pipeline wake attempts returned HTTP 402 without a verified owner observation; the independent Cloudflare and Vercel heads currently have no native readback.
-- The current A2A GitHub Actions run failed before contacting either agent endpoint because running `python -m pip` from the repository root caused the repository's root-level `types.py` to shadow Python's standard-library `types` module.
-- Browserbase currently advertises a free tier with 3 concurrent browsers, 1 browser hour, 3 agent runs, and 15 minutes per session.
-- Kilo Gateway advertises anonymous access to free models with a 200-request/hour/IP limit; its free routing may send prompts to providers that log prompts and outputs, so it must not receive personal or confidential data.
+A first A2A probe reached a social-data API and received a static service/skill description rather than a substantive agent result. A second endpoint was a read-only agent directory. Those responses demonstrate that HTTP 200 or a service-card response is not proof of a completed agent turn.
 
-## Your tasks
+A separate LocalMark Document Analyst agent exposes an A2A endpoint and reports one free trial per network every 30 days, followed by a paid per-task price. Its pricing endpoint currently reports the free trial as available. The invocation must explicitly permit model processing, must use the free trial only, and must stop if payment is required. No payment is authorized.
 
-1. Identify the strongest existing open-source implementation to extend for this system, with a concrete public GitHub repository and the capability it contributes.
-2. Recommend a viable free-tier remote execution or browser provider and a separate agent platform/model route. State actual limits and data-handling caveats.
-3. Propose one coherent provider-first execution design that reuses the existing ownership boundaries: admission, resource selection, browser session, provider-native prompt, HAR capture, task polling, terminal result, and durable readback. Avoid creating a competing scheduler or credential vault.
-4. Diagnose the Python module-shadowing failure at the architectural level and recommend a durable fix that does not merely suppress the error.
-5. If your platform can perform a second native A2A handoff to a different provider, trigger it now, wait for terminal completion, and return the provider, task ID, terminal state, and actual response. If it cannot, state that clearly.
-6. Give one concrete production-strengthening action with a measurable acceptance condition.
+## Questions
 
-Do not claim repository access, account creation, deployment, provider execution, or verification unless you actually performed it. Do not invent results. Do not request or expose credentials. Do not create accounts, send emails, perform outreach, or move money.
+1. Which existing open-source project should be extended for the agent runtime, browser controller, and memory graph? Identify specific capabilities to borrow rather than replacing the existing components.
+2. Recommend a genuinely free-tier remote browser provider and a separate agent platform/model route. State practical limits and data-handling caveats.
+3. Design one coherent provider-first execution path: admission, resource selection, browser session, HAR capture, backend endpoint discovery, provider-native prompt, task polling, terminal-result verification, and durable readback.
+4. Define a strict success predicate that distinguishes a queued/accepted request, static agent card, or HTTP 200 from a completed agent turn with substantive output.
+5. Recommend one production-strengthening action and a measurable acceptance condition.
+
+Use only the supplied information and your general technical knowledge. Distinguish facts from recommendations. Do not invent repository access, deployments, account creation, provider execution, or revenue. Do not request or expose credentials, create accounts, send emails, perform outreach, or make payments.
