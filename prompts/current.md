@@ -42,3 +42,20 @@ Public projects and provider documentation to compare:
 - Do not create accounts, send messages, perform outreach, or make payments.
 - Distinguish directly observed facts from recommendations.
 - Return a concise but technically specific architecture review, including source links and exact repository paths where possible.
+
+## Current review focus (2026-11-12)
+
+Inspect these exact public OmniRoute paths and distinguish inbound skill invocation from outbound agent execution:
+
+- `docs/frameworks/AGENT_PROTOCOLS_GUIDE.md`
+- `docs/frameworks/A2A-SERVER.md`
+- `docs/frameworks/CLOUD_AGENT.md`
+- `src/app/a2a/route.ts`
+- `src/lib/a2a/taskExecution.ts`
+- `src/lib/a2a/taskManager.ts`
+- `src/app/api/a2a/tasks/route.ts`
+- `src/lib/cloudAgent/`
+
+The central question is whether OmniRoute's A2A `message/send` executes one of its own skills through a model gateway, while `/api/a2a/tasks` delegates a real task to a separate coding-agent provider. Evaluate the task's original native identity, terminal-state observation, status synchronization, and whether an outbound A2A client exists. Do not equate a gateway completion or a submitted task with an independently completed native agent turn.
+
+Compare the existing public OmniRoute implementation with the A2A protocol specification, OpenHands Software Agent SDK, and Kilo Code's agent runtime. Recommend the smallest upgrade that preserves the strongest existing implementation and leaves durable scheduling, account custody, browser evidence, and source memory with their existing owners.
