@@ -20,23 +20,16 @@ concurrency:
 
 jobs:
   invoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.52.0-noble
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install browser runtime in an isolated runner directory
-        working-directory: ${{ runner.temp }}
-        run: |
-          python -m venv "$RUNNER_TEMP/agent-runtime"
-          "$RUNNER_TEMP/agent-runtime/bin/python" -m pip install --disable-pip-version-check playwright==1.52.0
-          "$RUNNER_TEMP/agent-runtime/bin/python" -m playwright install --with-deps chromium
       - name: Invoke independent A2A agent and capture browser traffic
         run: |
           mkdir -p artifacts
-          "$RUNNER_TEMP/agent-runtime/bin/python" scripts/remote_agent_turn.py
+          python scripts/remote_agent_turn.py
       - name: Preserve provider HAR
         if: always() && hashFiles('artifacts/agent-provider.har') != ''
         uses: actions/upload-artifact@v4
