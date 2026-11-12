@@ -106,6 +106,13 @@ def trial_is_available(pricing):
     return isinstance(trial, dict) and trial.get("available") is True
 
 
+def write_result(value):
+    HAR_PATH.parent.mkdir(parents=True, exist_ok=True)
+    (HAR_PATH.parent / "agent-result.json").write_text(
+        json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
 async def rpc(request, endpoint, method, params, request_id):
     response = await request.post(
         endpoint,
@@ -245,17 +252,35 @@ async def main():
         try:
             card_status, pricing_status, pricing = await preflight_provider(context)
             if card_status != 200 or pricing_status != 200:
+                write_result({
+                    "state": "preflight_failed",
+                    "agent_submitted": False,
+                    "agent_card_http": card_status,
+                    "pricing_http": pricing_status,
+                })
                 raise SystemExit("Provider preflight failed; no AI call attempted")
             if not trial_is_available(pricing):
                 print("FREE_TRIAL_NOT_VERIFIED; no AI call and no payment")
-                return
+                write_result({
+                    "state": "free_trial_unavailable",
+                    "agent_submitted": False,
+                    "agent_card_http": card_status,
+                    "pricing_http": pricing_status,
+                })
+                raise SystemExit(3)
             if os.getenv("PREFLIGHT_ONLY") == "1":
                 print("PREFLIGHT_COMPLETE_FREE_TRIAL_AVAILABLE")
                 return
             request_id = str(uuid.uuid4())
             result = await invoke_agent(context, prompt, request_id)
             if not result:
+                write_result({
+                    "state": "unverified",
+                    "request_id": request_id,
+                    "agent_submitted": True,
+                })
                 raise SystemExit(2)
+            write_result(result)
             print("AGENT_TURN_COMPLETE")
             print("PROVIDER=" + A2A_ENDPOINT)
             print("REQUEST_ID=" + result["request_id"])

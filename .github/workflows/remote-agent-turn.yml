@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: remote-agent-turn
@@ -31,9 +32,55 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check playwright==1.52.0
       - name: Preflight and invoke the free-trial LocalMark agent
+        id: agent
         run: |
           mkdir -p artifacts
           python scripts/remote_agent_turn.py
+      - name: Publish terminal agent status
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          AGENT_STEP_OUTCOME: ${{ steps.agent.outcome }}
+          RUN_ID: ${{ github.run_id }}
+        with:
+          script: |
+            const fs = require('fs');
+            let result = null;
+            try {
+              result = JSON.parse(fs.readFileSync('artifacts/agent-result.json', 'utf8'));
+            } catch {}
+            const completeStates = new Set(['completed', 'complete', 'succeeded', 'success', 'done']);
+            const completed = process.env.AGENT_STEP_OUTCOME === 'success'
+              && result
+              && completeStates.has(String(result.state || '').toLowerCase())
+              && typeof result.task_id === 'string'
+              && result.task_id.length > 0
+              && result.analysis
+              && result.billing?.charged !== true;
+            const noTrial = result?.state === 'free_trial_unavailable';
+            const state = completed ? 'success' : noTrial ? 'error' : 'failure';
+            const description = completed
+              ? `Verified LocalMark A2A task ${result.task_id} completed`
+              : noTrial
+                ? 'Free trial unavailable; no agent turn submitted'
+                : 'Agent turn did not reach verified terminal output';
+            const target_url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.RUN_ID}`;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state,
+              context: 'remote-agent-turn',
+              description: description.slice(0, 140),
+              target_url,
+            });
+      - name: Preserve terminal agent result
+        if: always() && hashFiles('artifacts/agent-result.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-turn-result
+          path: artifacts/agent-result.json
+          retention-days: 7
       - name: Preserve provider HAR
         if: always() && hashFiles('artifacts/agent-provider.har') != ''
         uses: actions/upload-artifact@v4
