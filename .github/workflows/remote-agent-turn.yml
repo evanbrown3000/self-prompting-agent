@@ -1,0 +1,44 @@
+name: Remote cross-platform agent turn
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "prompts/current.md"
+      - "scripts/remote_agent_turn.py"
+      - ".github/workflows/remote-agent-turn.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-agent-turn
+  cancel-in-progress: false
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install browser runtime
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.52.0
+          python -m playwright install --with-deps chromium
+      - name: Invoke independent A2A agent and capture browser traffic
+        run: |
+          mkdir -p artifacts
+          python scripts/remote_agent_turn.py
+      - name: Preserve provider HAR
+        if: always() && hashFiles('artifacts/agent-provider.har') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-provider-har
+          path: artifacts/agent-provider.har
+          retention-days: 7
