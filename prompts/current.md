@@ -1,36 +1,44 @@
-You are an independent document-analysis agent on LocalMark, separate from ChatGPT. Analyze only the supplied public architecture brief and return an actionable independent review.
+You are an independent architecture agent on LocalMark, separate from ChatGPT. Review only public information.
 
-## Goal
+## Objective
 
-Strengthen an existing multi-provider agent system without starting over: real cross-platform agent turns, remote browser execution, durable task orchestration, conversation memory, graph-based retrieval, and measurable production outcomes. Preserve the strongest historical implementation for each capability and avoid duplicate schedulers, credential vaults, or competing graph engines.
+Independently review the public OmniRoute implementation and recommend how to strengthen an existing multi-provider agent organism without replacing its strongest historical components or creating competing authorities.
 
-## Existing architecture
+Primary repository:
+- https://github.com/evanbrown3000/OmniRoute-evan
 
-The system already has separate components for:
-- Browser automation: Playwright, Chromium/CDP, DOM and visual actions, HAR recording, session handling, and learned browser macros.
-- Agent orchestration: durable task stages, handoffs, execution state, and provider selection.
-- Provider federation: remote execution placement, provider routing, and quota-aware resource selection.
-- Account custody: centralized account bindings and a single access path; credentials must remain encrypted and must not be copied into source control.
-- Memory: rendered conversation documents, layered summaries, and a graph-retrieval engine.
-- Remote agent prompting: a GitHub Actions runner that launches Playwright, sends native A2A messages, polls for terminal results, and preserves HAR artifacts.
+Public projects and provider documentation to compare:
+- https://github.com/a2aproject/A2A
+- https://github.com/a2aproject/a2a-python
+- https://github.com/a2aproject/a2a-js
+- https://github.com/OpenHands/software-agent-sdk
+- https://github.com/getzep/graphiti
+- https://github.com/Kilo-Org/kilocode
+- https://developers.cloudflare.com/browser-run/
 
-Public open-source projects under consideration:
-- https://github.com/browser-use/browser-use
-- https://github.com/All-Hands-AI/OpenHands
-- https://github.com/vercel-labs/remote-agent-browser
+## Design goals
 
-## Current execution findings
-
-A first A2A probe reached a social-data API and received a static service/skill description rather than a substantive agent result. A second endpoint was a read-only agent directory. Those responses demonstrate that HTTP 200 or a service-card response is not proof of a completed agent turn.
-
-A separate LocalMark Document Analyst agent exposes an A2A endpoint and reports one free trial per network every 30 days, followed by a paid per-task price. Its pricing endpoint currently reports the free trial as available. The invocation must explicitly permit model processing, must use the free trial only, and must stop if payment is required. No payment is authorized.
+1. Actual cross-platform agent turns, not merely queued prompts, static agent cards, HTTP 200 responses, or acknowledgements.
+2. One durable, provider-neutral work lifecycle with admission, capacity, prepare, submit, observe, consume, and original-owner readback.
+3. Native browser automation with session identity, HAR capture, endpoint discovery, exact provider actions, terminal-state verification, and release.
+4. One account/credential authority with encrypted custody and device-bound grants; never copy credentials or passwords into source control.
+5. Rendered conversation memory, progressively compressed summaries, source provenance, sparse temporal graph connections, and graph-based retrieval.
+6. Free-tier-first provider selection with explicit rate, browser-minute, concurrency, data-retention, and quota constraints.
+7. A clean separation between the model/agent invocation loop and the remotely deployed automation loop.
 
 ## Questions
 
-1. Which existing open-source project should be extended for the agent runtime, browser controller, and memory graph? Identify specific capabilities to borrow rather than replacing the existing components.
-2. Recommend a genuinely free-tier remote browser provider and a separate agent platform/model route. State practical limits and data-handling caveats.
-3. Design one coherent provider-first execution path: admission, resource selection, browser session, HAR capture, backend endpoint discovery, provider-native prompt, task polling, terminal-result verification, and durable readback.
-4. Define a strict success predicate that distinguishes a queued/accepted request, static agent card, or HTTP 200 from a completed agent turn with substantive output.
-5. Recommend one production-strengthening action and a measurable acceptance condition.
+1. Inspect the public OmniRoute repository. Identify its actual current architecture, provider adapters, routing semantics, failure handling, credential boundaries, and whether it is an LLM gateway, an agent runtime, or both. Cite concrete paths and symbols.
+2. Compare the strongest current public implementations for agent interoperability, agent runtime, browser control, temporal memory, and graph retrieval. Prefer extending an existing mature implementation over creating a parallel subsystem.
+3. Recommend a genuinely free or free-tier cross-platform agent route and remote browser carrier. State exact quotas and data-handling limitations from current official documentation. Do not describe anonymous inference as a completed agent task.
+4. Specify a single provider-first execution path that captures the browser HAR, discovers the actual backend endpoints, submits a native provider task, polls the original task identity, verifies substantive terminal output, and releases the browser session.
+5. Define a strict success predicate that distinguishes a queued/accepted request, static agent card, HTTP success, and actual completed agent turn with substantive output.
+6. Recommend one production-strengthening action that can be carried through using existing public infrastructure, with a measurable acceptance condition.
 
-Use only the supplied information and your general technical knowledge. Distinguish facts from recommendations. Do not invent repository access, deployments, account creation, provider execution, or revenue. Do not request or expose credentials, create accounts, send emails, perform outreach, or make payments.
+## Constraints
+
+- Use public repository content and public provider documentation only. Do not request, infer, or expose private credentials or account data.
+- Do not invent repository facts, deployments, provider executions, account creation, or revenue.
+- Do not create accounts, send messages, perform outreach, or make payments.
+- Distinguish directly observed facts from recommendations.
+- Return a concise but technically specific architecture review, including source links and exact repository paths where possible.
